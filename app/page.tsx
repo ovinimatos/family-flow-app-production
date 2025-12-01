@@ -6,7 +6,7 @@ import LoginScreen from './components/LoginScreen';
 import TimelineScreen from './components/TimelineScreen';
 import FamilyOnboarding from './components/FamilyOnboarding';
 import DashboardSkeleton from './components/DashboardSkeleton';
-import TransactionControls from './components/TransactionControls'; // IMPORTANTE
+import TransactionControls from './components/TransactionControls';
 import { Loader2, List, BarChart3, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function Home() {
@@ -38,9 +38,7 @@ export default function Home() {
 
   return (
     <>
-      {/* VIEWS */}
       <div className={currentView === 'timeline' ? 'block' : 'hidden'}><TimelineScreen /></div>
-      
       <div className={currentView === 'dashboard' ? 'block' : 'hidden'}>
         {txLoading ? <DashboardSkeleton type="dashboard" /> : (
           <div className="px-4 pt-4 max-w-lg mx-auto animate-fade-in pb-32">
@@ -54,7 +52,7 @@ export default function Home() {
                 <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-gray-300"><p className="text-[10px] font-bold text-secondary uppercase mb-1">Total Planejado</p><p className="text-lg font-bold text-gray-500">{formatCurrency(dashboardData.totalPlanned)}</p></div>
             </div>
             <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6">
-                <div className="flex justify-between items-center mb-8"><h3 className="text-xs font-bold text-dark uppercase">Evolução Anual</h3><div className="flex gap-3 text-[9px] font-bold uppercase"><div className="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-brand"></div> Real</div><div className="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-gray-300"></div> Plan</div></div></div>
+                <div className="flex justify-between items-center mb-8"><h3 className="text-xs font-bold text-dark uppercase">Evolução Anual</h3><div className="flex gap-3 text-[9px] font-bold uppercase"><div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-brand"></div> Real</div><div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-gray-300"></div> Plan</div></div></div>
                 <div className="flex items-end justify-between h-48 gap-1 pb-2">
                     {dashboardData.mReal.map((realVal, idx) => {
                         const planVal = dashboardData.mPlan[idx]; const realH = (realVal / dashboardData.maxVal) * 100; const planH = (planVal / dashboardData.maxVal) * 100;
@@ -68,10 +66,7 @@ export default function Home() {
           </div>
         )}
       </div>
-
-      {/* CONTROLES E NAVEGAÇÃO */}
       <TransactionControls /> 
-
       <nav className="fixed bottom-0 w-full bg-surface border-t border-gray-200 pb-safe pt-2 px-6 shadow-nav z-30 flex justify-between items-center h-[80px]">
         <button onClick={() => setCurrentView('timeline')} className={`flex flex-col items-center gap-1 w-16 transition-colors ${currentView === 'timeline' ? 'text-brand' : 'text-gray-400'}`}><List size={24} /><span className="text-[10px] font-bold">Fluxo</span></button>
         <div className="w-16"></div>
