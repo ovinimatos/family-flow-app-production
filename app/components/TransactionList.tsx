@@ -1,39 +1,41 @@
 'use client';
-import { useTransactions } from '../context/TransactionsContext';
+import { useTransactions, Transaction } from '../context/TransactionsContext';
 import { Check, RotateCw, TrendingUp } from 'lucide-react';
 
-// Recebe os dados já filtrados da página principal
-export default function TransactionList({ monthTransactions }: { monthTransactions: any[] }) {
+// CORREÇÃO: Tipagem explícita para evitar erros de 'any'
+interface TransactionListProps {
+  monthTransactions: Transaction[];
+}
+
+export default function TransactionList({ monthTransactions }: TransactionListProps) {
   const { updateTransaction, setTransactionToEdit } = useTransactions();
 
   const formatCurrency = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Math.abs(val));
 
-  // Lógica de Data (Urgência)
   const getDateStyles = (dateStr: string, status: string) => {
     const today = new Date(); today.setHours(0,0,0,0);
-    // Parse seguro YYYY-MM-DD
+    // Parse seguro para evitar problemas de timezone
     const [y, m, d] = dateStr.split('-').map(Number);
     const itemDate = new Date(y, m - 1, d);
     
     let base = "font-black text-xl tracking-tighter"; 
     if (itemDate < today && status === 'pending') return `${base} text-brand`; 
-    if (itemDate.getTime() === today.getTime() && status === 'pending') return `${base} text-orange-500`;
+    if (itemDate.getTime() === today.getTime() && status === 'pending') return `${base} text-brand`;
     return `${base} text-gray-700`; 
   };
 
-  const quickToggle = (e: React.MouseEvent, t: any) => {
+  const quickToggle = (e: React.MouseEvent, t: Transaction) => {
     e.stopPropagation();
     if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(15);
     const newStatus = t.status === 'pending' ? 'paid' : 'pending';
     updateTransaction(t.id, { status: newStatus });
   };
 
-  const handleCardClick = (t: any) => setTransactionToEdit(t);
+  const handleCardClick = (t: Transaction) => setTransactionToEdit(t);
 
   return (
     <div className="pb-32 px-4 space-y-3 min-h-screen">
       
-      {/* ANIMAÇÃO SPRING */}
       <style jsx global>{`
         @keyframes spring-check { 0% { transform: scale(0); opacity: 0; } 50% { transform: scale(1.4); } 100% { transform: scale(1); opacity: 1; } }
         .icon-spring { animation: spring-check 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }

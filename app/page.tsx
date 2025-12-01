@@ -19,21 +19,25 @@ export default function Home() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [dashYear, setDashYear] = useState(new Date().getFullYear());
   
+  // Scroll State
   const [isScrolled, setIsScrolled] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const isUserAction = useRef(false);
 
+  // --- SCROLL LISTENER ---
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // --- DADOS ---
   const { monthTransactions, dashboardData, totals } = useMemo(() => {
     const viewMonth = currentDate.getMonth();
     const viewYear = currentDate.getFullYear();
 
+    // Timeline Data
     const monthTx = transactions
       .filter(t => {
         const [y, m, d] = t.date.split('-');
@@ -51,6 +55,7 @@ export default function Home() {
     const planned = monthTx.reduce((acc, t) => t.status === 'pending' ? acc + Number(t.amount) : acc, 0);
     const total = realized + planned;
     
+    // Dashboard Data
     const yearData = transactions.filter(t => new Date(t.date).getFullYear() === dashYear);
     const totalSpent = yearData.reduce((acc, t) => t.status === 'paid' ? acc + Math.abs(Number(t.amount)) : acc, 0);
     const totalPlannedYear = yearData.reduce((acc, t) => t.status === 'pending' ? acc + Math.abs(Number(t.amount)) : acc, 0);
@@ -75,7 +80,7 @@ export default function Home() {
     };
   }, [transactions, currentDate, dashYear]);
 
-  // Celebração (CORRIGIDO: Dependências adicionadas)
+  // Celebração
   useEffect(() => {
     const percentage = totals.total === 0 ? 0 : (totals.realized / totals.total) * 100;
     if (percentage >= 99.9 && totals.total > 0 && !showCelebration && currentView === 'timeline') {
@@ -86,7 +91,7 @@ export default function Home() {
         }, 500);
         return () => clearTimeout(timer);
     }
-  }, [totals.realized, totals.total, showCelebration, currentView]); // <--- ADICIONADO showCelebration E currentView
+  }, [totals.realized, totals.total]);
 
   const changeMonth = (offset: number) => {
     const newDate = new Date(currentDate);
@@ -124,6 +129,7 @@ export default function Home() {
         .collapsible-inner { overflow: hidden; }
       `}</style>
 
+      {/* --- HEADER CLEAN & INTEGRADO --- */}
       <header 
         className={`sticky top-0 z-30 bg-white/95 backdrop-blur-xl border-b border-gray-100 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]
             ${isScrolled ? 'h-[110px]' : 'h-[200px]'}
@@ -131,7 +137,9 @@ export default function Home() {
       >
         <div className="relative h-full flex flex-col justify-between max-w-xl mx-auto px-5">
             
+            {/* LINHA 1: CONTROLES (Navegação + Settings) */}
             <div className="pt-4 flex justify-between items-center relative z-20">
+                {/* Segmented Control */}
                 <div className="bg-gray-100 p-1 rounded-xl flex gap-1 shadow-inner">
                     <button 
                         onClick={() => setCurrentView('timeline')} 
@@ -147,14 +155,17 @@ export default function Home() {
                     </button>
                 </div>
 
+                {/* Settings */}
                 <button onClick={() => setShowSettings(true)} className="p-2.5 text-gray-400 hover:text-dark rounded-full hover:bg-gray-100 transition-all active:scale-95">
                     <Settings size={20} />
                 </button>
             </div>
 
+            {/* LINHA 2: PAINEL DE DADOS (Colapsável) */}
             <div className={`collapsible-grid ${isScrolled ? 'collapsed' : ''}`}>
                 <div className="collapsible-inner">
                     {currentView === 'timeline' ? (
+                        // Timeline Stats
                         <div className="pb-4 pt-2 px-1">
                              <div className="flex justify-between items-end mb-3">
                                 <div>
@@ -166,11 +177,12 @@ export default function Home() {
                                     <h3 className="text-lg font-bold text-gray-400 tabular-nums leading-none">{formatCurrency(totals.planned)}</h3>
                                 </div>
                             </div>
-                            <div className="relative h-2.5 w-full bg-gray-100 rounded-full overflow-hidden shadow-inner border border-gray-100">
+                            <div className="relative h-2 w-full bg-gray-100 rounded-full overflow-hidden shadow-inner">
                                 <div className={`absolute top-0 left-0 h-full rounded-full transition-all duration-1000 ease-out ${progressPercent >= 99.9 ? 'metallic-green' : 'progress-gradient'}`} style={{ width: `${progressPercent}%` }}><div className="absolute right-0 top-0 h-full w-3 bg-white/30 blur-[3px]"></div></div>
                             </div>
                         </div>
                     ) : (
+                        // Dashboard Stats
                         <div className="grid grid-cols-2 gap-3 pb-4 pt-2 px-1">
                             <div className="bg-gray-50 p-3 rounded-2xl border border-gray-100 border-l-[3px] border-l-brand"><p className="text-[9px] font-bold text-gray-400 uppercase mb-1">Gasto {dashYear}</p><p className="text-lg font-black text-dark">{formatCurrency(dashboardData.totalSpent)}</p></div>
                             <div className="bg-gray-50 p-3 rounded-2xl border border-gray-100 border-l-[3px] border-l-gray-300"><p className="text-[9px] font-bold text-gray-400 uppercase mb-1">Planejado {dashYear}</p><p className="text-lg font-black text-gray-500">{formatCurrency(dashboardData.totalPlannedYear)}</p></div>
@@ -179,6 +191,7 @@ export default function Home() {
                 </div>
             </div>
 
+            {/* LINHA 3: SELETOR DE DATA (One Line, Clean) */}
             <div className="pb-4 pt-1 flex justify-center items-center border-t border-gray-50/50">
                 <div className="flex items-center gap-6 w-full max-w-xs justify-between">
                     <button 
@@ -203,6 +216,7 @@ export default function Home() {
 
         </div>
         
+        {/* Handle Visual para indicar Scroll */}
         {isScrolled && (
             <div className="absolute bottom-[-12px] left-1/2 -translate-x-1/2 w-12 h-3 bg-gray-200/50 backdrop-blur rounded-b-lg flex items-center justify-center cursor-pointer z-0" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
                 <div className="w-4 h-1 bg-gray-400 rounded-full opacity-50"></div>
@@ -210,9 +224,11 @@ export default function Home() {
         )}
       </header>
 
+      {/* --- CONTEÚDO --- */}
       <div className="pt-2">
         {currentView === 'timeline' ? (
-            <TransactionList monthTransactions={monthTransactions} onScroll={() => {}} />
+            // CORREÇÃO AQUI: Removida prop 'onScroll' que não existe mais no filho
+            <TransactionList monthTransactions={monthTransactions} />
         ) : (
             <div className="px-4 max-w-lg mx-auto animate-fade-in pb-32">
                 <div className="bg-white p-5 rounded-[1.5rem] shadow-sm border border-gray-100 mb-6">
@@ -226,30 +242,7 @@ export default function Home() {
                     </div>
                     <div className="flex justify-between mt-2 px-1 text-[9px] text-gray-400 font-bold uppercase">{mInitials.map((m, i) => <div key={i} className="w-full text-center">{m}</div>)}</div>
                 </div>
-                <div className="bg-white p-5 rounded-[1.5rem] shadow-sm border border-gray-100 mb-24">
-                  <h3 className="text-xs font-bold text-dark uppercase tracking-wider mb-6">Destino dos Gastos</h3>
-                  <div className="space-y-5">
-                    {dashboardData.sortedCats.length === 0 ? (
-                      <p className="text-center text-xs text-gray-400 py-4">Sem dados para este ano.</p>
-                    ) : (
-                      dashboardData.sortedCats.map(([cat, val]) => { 
-                        const pct = (val / dashboardData.totalSpent) * 100; 
-                        const barPct = (val / dashboardData.sortedCats[0][1]) * 100; 
-                        return (
-                          <div key={cat}>
-                            <div className="flex justify-between text-xs mb-1.5">
-                              <span className="font-bold text-dark">{cat}</span>
-                              <span className="text-secondary font-medium">{formatCurrency(val)} <span className="text-gray-300 ml-1 text-[10px]">({pct.toFixed(0)}%)</span></span>
-                            </div>
-                            <div className="w-full bg-gray-50 rounded-full h-2.5 overflow-hidden">
-                              <div className="bg-brand h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${barPct}%` }}></div>
-                            </div>
-                          </div>
-                        ); 
-                      })
-                    )}
-                  </div>
-                </div>
+                <div className="bg-white p-5 rounded-[1.5rem] shadow-sm border border-gray-100 mb-24"><h3 className="text-xs font-bold text-dark uppercase tracking-wider mb-6">Destino dos Gastos</h3><div className="space-y-5">{dashboardData.sortedCats.length === 0 ? (<p className="text-center text-xs text-gray-400 py-4">Sem dados para este ano.</p>) : (dashboardData.sortedCats.map(([cat, val]) => { const pct = (val / dashboardData.totalSpent) * 100; const barPct = (val / dashboardData.sortedCats[0][1]) * 100; return (<div key={cat}><div className="flex justify-between text-xs mb-1.5"><span class="font-bold text-dark">{cat}</span><span class="text-secondary font-medium">{formatCurrency(val)} <span className="text-gray-300 ml-1 text-[10px]">({pct.toFixed(0)}%)</span></span></div><div className="w-full bg-gray-50 rounded-full h-2.5 overflow-hidden"><div className="bg-brand h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${barPct}%` }}></div></div></div>); }))}</div></div>
             </div>
         )}
       </div>
