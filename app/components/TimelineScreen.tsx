@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useTransactions } from '../context/TransactionsContext';
 import MonthCelebration from './MonthCelebration';
 import FamilySettings from './FamilySettings';
-import { ChevronLeft, ChevronRight, Check, Calendar, TrendingUp, Settings, RotateCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, Clock, RotateCw, Calendar, TrendingUp, Settings } from 'lucide-react';
 
 export default function TimelineScreen() {
   const { transactions, updateTransaction, loading, setTransactionToEdit } = useTransactions();
@@ -25,12 +25,21 @@ export default function TimelineScreen() {
   const viewMonth = currentDate.getMonth();
   const viewYear = currentDate.getFullYear();
   
+  // --- LÓGICA DE ORDENAÇÃO ESTÁVEL (FIX) ---
   const monthTransactions = transactions
     .filter(t => {
       const tDate = new Date(t.date + 'T12:00:00');
       return tDate.getMonth() === viewMonth && tDate.getFullYear() === viewYear;
     })
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    .sort((a, b) => {
+      // 1. Critério: Data
+      const timeA = new Date(a.date).getTime();
+      const timeB = new Date(b.date).getTime();
+      if (timeA !== timeB) return timeA - timeB;
+      
+      // 2. Critério de Desempate: ID (Garante estabilidade total)
+      return a.id.localeCompare(b.id);
+    });
 
   const realized = monthTransactions.reduce((acc, t) => t.status === 'paid' ? acc + Number(t.amount) : acc, 0);
   const planned = monthTransactions.reduce((acc, t) => t.status === 'pending' ? acc + Number(t.amount) : acc, 0);
@@ -52,20 +61,15 @@ export default function TimelineScreen() {
   const formatCurrency = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Math.abs(val));
   const formatMonth = (date: Date) => date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 
-  // Lógica de Cor da Data (Hierarquia Forte)
+  // Estilos de Urgência da Data
   const getDateStyles = (dateStr: string, status: string) => {
     const today = new Date();
     today.setHours(0,0,0,0);
     const itemDate = new Date(dateStr + 'T12:00:00');
     
-    // Base forte para todos
     let base = "font-black text-xl tracking-tighter"; 
-
-    // Vencido e não pago
     if (itemDate < today && status === 'pending') return `${base} text-brand`; 
-    // Vence Hoje e não pago
     if (itemDate.getTime() === today.getTime() && status === 'pending') return `${base} text-orange-500`;
-    // Pago ou Futuro (Cinza Escuro Sólido)
     return `${base} text-gray-700`; 
   };
 
@@ -141,13 +145,15 @@ export default function TimelineScreen() {
 
             return (
               <div key={t.id} className={`group relative w-full rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.03)] border flex overflow-hidden transition-all duration-500 ${isPending ? 'bg-white border-white' : 'bg-[#F9FAFB] border-transparent opacity-60 hover:opacity-100 grayscale-[0.3] hover:grayscale-0'}`}>
-                {/* Check */}
+                
+                {/* LADO ESQUERDO */}
                 <div onClick={(e) => quickToggle(e, t)} className="w-[4.5rem] flex items-center justify-center cursor-pointer transition-colors duration-300 border-r border-gray-50/50">
                   <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${isPending ? 'border-brand/40 bg-white text-transparent hover:border-brand' : 'border-green-500 bg-green-500 text-white scale-100 shadow-sm'}`}>
                     {!isPending && <Check size={16} strokeWidth={3} className="icon-spring" />}
                   </div>
                 </div>
-                {/* Conteúdo */}
+
+                {/* CONTEÚDO */}
                 <div onClick={() => handleCardClick(t)} className="flex-1 py-4 px-5 flex justify-between items-center cursor-pointer">
                   <div className="flex items-center gap-4">
                     {/* Data com Peso Visual */}

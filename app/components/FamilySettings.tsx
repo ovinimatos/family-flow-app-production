@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { X, Copy, Check, Users, LogOut, Trash2, Edit2, Shield } from 'lucide-react';
 
 export default function FamilySettings({ onClose }: { onClose: () => void }) {
-  const { familyName, inviteCode, members, updateFamilyName, removeMember, refresh } = useTransactions();
+  const { familyName, inviteCode, members, updateFamilyName, removeMember } = useTransactions();
   const { user, signOut } = useAuth();
   
   const [isEditingName, setIsEditingName] = useState(false);
@@ -30,7 +30,6 @@ export default function FamilySettings({ onClose }: { onClose: () => void }) {
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose}></div>
       <div className="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl p-6 z-50 animate-slide-up shadow-2xl max-h-[90vh] overflow-y-auto">
         
-        {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-lg font-bold text-dark flex items-center gap-2">
             <Users size={20} className="text-brand" /> Configurações
@@ -40,50 +39,36 @@ export default function FamilySettings({ onClose }: { onClose: () => void }) {
 
         <div className="space-y-8">
             
-            {/* 1. NOME DA FAMÍLIA */}
             <div>
                 <label className="text-[10px] font-bold text-gray-400 uppercase mb-2 block">Nome do Grupo</label>
                 <div className="flex items-center justify-between bg-gray-50 p-3 rounded-xl border border-gray-100">
                     {isEditingName ? (
-                        <input 
-                            value={newName} 
-                            onChange={(e) => setNewName(e.target.value)} 
-                            className="bg-transparent outline-none font-bold text-dark w-full"
-                            autoFocus
-                        />
+                        <input value={newName} onChange={(e) => setNewName(e.target.value)} className="bg-transparent outline-none font-bold text-dark w-full" autoFocus />
                     ) : (
                         <span className="font-bold text-dark">{familyName}</span>
                     )}
-                    
-                    <button 
-                        onClick={() => isEditingName ? handleSaveName() : setIsEditingName(true)}
-                        className="p-2 text-brand hover:bg-white rounded-lg transition-all"
-                    >
+                    <button onClick={() => isEditingName ? handleSaveName() : setIsEditingName(true)} className="p-2 text-brand hover:bg-white rounded-lg transition-all">
                         {isEditingName ? <Check size={18} /> : <Edit2 size={16} />}
                     </button>
                 </div>
             </div>
 
-            {/* 2. CÓDIGO DE CONVITE (HERO SECTION) */}
             <div className="relative overflow-hidden bg-brand/5 border border-brand/10 p-5 rounded-2xl">
                 <div className="absolute -right-4 -top-4 w-16 h-16 bg-brand/10 rounded-full blur-xl"></div>
                 <label className="text-[10px] font-bold text-brand uppercase mb-2 block tracking-wider">Código de Convite</label>
                 <div className="flex items-center gap-3">
                     <h2 className="text-3xl font-black text-brand tracking-widest">{inviteCode}</h2>
-                    <button 
-                        onClick={handleCopyCode}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-white shadow-sm border border-gray-100 rounded-lg text-xs font-bold text-gray-600 active:scale-95 transition-transform"
-                    >
+                    <button onClick={handleCopyCode} className="flex items-center gap-1.5 px-3 py-1.5 bg-white shadow-sm border border-gray-100 rounded-lg text-xs font-bold text-gray-600 active:scale-95 transition-transform">
                         {copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
                         {copied ? 'Copiado!' : 'Copiar'}
                     </button>
                 </div>
+                {/* CORREÇÃO AQUI: Trocamos " por &quot; */}
                 <p className="text-[10px] text-gray-400 mt-2 leading-relaxed">
-                    Envie este código para quem você quer convidar. Eles poderão entrar usando a opção "Entrar em Família" na tela inicial.
+                    Envie este código para quem você quer convidar. Eles poderão entrar usando a opção &quot;Entrar em Família&quot; na tela inicial.
                 </p>
             </div>
 
-            {/* 3. MEMBROS */}
             <div>
                 <label className="text-[10px] font-bold text-gray-400 uppercase mb-3 block">Membros ({members.length})</label>
                 <div className="space-y-3">
@@ -100,19 +85,12 @@ export default function FamilySettings({ onClose }: { onClose: () => void }) {
                                             {m.display_name} {isMe && <span className="text-[10px] text-gray-400 font-normal">(Você)</span>}
                                         </p>
                                         <p className="text-[10px] text-gray-400 flex items-center gap-1">
-                                            {m.role === 'admin' && <Shield size={10} />} 
-                                            {m.role === 'admin' ? 'Administrador' : 'Membro'}
+                                            {m.role === 'admin' && <Shield size={10} />} {m.role === 'admin' ? 'Administrador' : 'Membro'}
                                         </p>
                                     </div>
                                 </div>
-
                                 {!isMe && (
-                                    <button 
-                                        onClick={() => { if(confirm('Remover este membro?')) removeMember(m.profile_id); }}
-                                        className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
+                                    <button onClick={() => { if(confirm('Remover este membro?')) removeMember(m.profile_id); }} className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={16} /></button>
                                 )}
                             </div>
                         );
@@ -120,12 +98,8 @@ export default function FamilySettings({ onClose }: { onClose: () => void }) {
                 </div>
             </div>
 
-            {/* 4. ACTIONS */}
             <div className="pt-4 border-t border-gray-100">
-                <button 
-                    onClick={async () => { await signOut(); window.location.reload(); }}
-                    className="w-full py-3 flex items-center justify-center gap-2 text-red-500 font-bold text-sm bg-red-50 rounded-xl hover:bg-red-100 transition-colors"
-                >
+                <button onClick={async () => { await signOut(); window.location.reload(); }} className="w-full py-3 flex items-center justify-center gap-2 text-red-500 font-bold text-sm bg-red-50 rounded-xl hover:bg-red-100 transition-colors">
                     <LogOut size={16} /> Sair do App
                 </button>
             </div>

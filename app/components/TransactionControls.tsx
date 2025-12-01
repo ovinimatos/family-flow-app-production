@@ -13,14 +13,10 @@ export default function TransactionControls() {
   
   const [isSheetOpen, setSheetOpen] = useState(false);
   const [modalType, setModalType] = useState<'real' | 'planned' | 'edit' | null>(null);
-  
-  // Dois tipos de Loading agora:
-  const [isFullLoading, setIsFullLoading] = useState(false); // Tela cheia (Recorrência)
-  const [isButtonLoading, setIsButtonLoading] = useState(false); // Apenas botão (Simples)
-  
+  const [isFullLoading, setIsFullLoading] = useState(false); 
+  const [isButtonLoading, setIsButtonLoading] = useState(false);
   const [showDeleteMenu, setShowDeleteMenu] = useState(false);
   
-  // Form State
   const [amount, setAmount] = useState('');
   const [desc, setDesc] = useState('');
   const [date, setDate] = useState('');
@@ -32,7 +28,6 @@ export default function TransactionControls() {
 
   const descInputRef = useRef<HTMLInputElement>(null);
 
-  // --- EFEITO: ABRIR EDIÇÃO ---
   useEffect(() => {
     if (transactionToEdit) {
       setModalType('edit');
@@ -55,7 +50,6 @@ export default function TransactionControls() {
     setShowDeleteMenu(false);
   };
 
-  // --- VOZ ---
   const handleVoice = () => {
     startListening((text) => {
       const amountMatch = text.match(/\d+([.,]\d+)?/);
@@ -83,16 +77,10 @@ export default function TransactionControls() {
     setTimeout(() => descInputRef.current?.focus(), 100);
   };
 
-  // --- SAVE (Lógica Dividida) ---
   const handleSave = async () => {
     if (!amount || !desc) return alert("Preencha valor e descrição");
-    
-    // Verifica se é operação pesada (Recorrência)
     const isHeavyOperation = recurrence !== 'none';
-
-    // Define qual loading usar
-    if (isHeavyOperation) setIsFullLoading(true);
-    else setIsButtonLoading(true);
+    if (isHeavyOperation) setIsFullLoading(true); else setIsButtonLoading(true);
 
     try {
         const val = parseFloat(amount);
@@ -108,26 +96,13 @@ export default function TransactionControls() {
             await updateTransaction(currentId, txData);
             if (recurrence !== 'none') await generateRecurrence(txData, recurrence);
         } else {
-            if (modalType === 'planned' && recurrence !== 'none') {
-                await generateRecurrence(txData, recurrence);
-            } else {
-                // Item Simples: Salva direto
-                await addTransaction(txData);
-            }
+            if (modalType === 'planned' && recurrence !== 'none') await generateRecurrence(txData, recurrence);
+            else await addTransaction(txData);
         }
         
-        // Se for pesado, mantém o delay artificial para a animação
-        if (isHeavyOperation) {
-            await new Promise(r => setTimeout(r, 2000));
-        }
-        
+        if (isHeavyOperation) await new Promise(r => setTimeout(r, 2000));
         closeModal();
-    } catch (error) { 
-        alert("Erro ao salvar"); 
-    } finally { 
-        setIsFullLoading(false);
-        setIsButtonLoading(false);
-    }
+    } catch (error) { alert("Erro ao salvar"); } finally { setIsFullLoading(false); setIsButtonLoading(false); }
   };
 
   const generateRecurrence = async (baseTx: any, mode: string) => {
@@ -141,14 +116,10 @@ export default function TransactionControls() {
     }
   }
 
-  // --- DELETE ---
   const handleDelete = async (mode: 'single' | 'all') => {
-    setIsButtonLoading(true); // Delete é rápido, usa loading de botão
-    if (mode === 'all' && currentRecurrenceId) {
-        await deleteRecurrenceSeries(currentRecurrenceId);
-    } else {
-        await deleteTransaction(currentId);
-    }
+    setIsButtonLoading(true);
+    if (mode === 'all' && currentRecurrenceId) await deleteRecurrenceSeries(currentRecurrenceId);
+    else await deleteTransaction(currentId);
     setIsButtonLoading(false);
     closeModal();
   };
@@ -163,16 +134,15 @@ export default function TransactionControls() {
 
   return (
     <>
-      {/* Loading de Tela Cheia (Apenas para Recorrência) */}
       {isFullLoading && <ImmersiveLoader />}
       
-      {/* FABs */}
       <div className="fixed bottom-24 right-6 z-40 flex flex-col items-end gap-3 pointer-events-auto">
         <button onClick={handleVoice} className="w-12 h-12 bg-dark hover:bg-gray-800 text-white rounded-full shadow-lg flex items-center justify-center transition-all active:scale-95"><Mic size={20} /></button>
         <button onClick={() => setSheetOpen(true)} className="w-14 h-14 bg-brand hover:bg-brandHover text-white rounded-full shadow-xl flex items-center justify-center transition-transform active:scale-95"><Plus size={28} /></button>
       </div>
 
-      {isListening && <div className="fixed inset-0 bg-black/80 z-[60] flex flex-col items-center justify-center text-white backdrop-blur-sm"><div className="animate-bounce mb-4"><Mic size={48} /></div><h2 className="text-xl font-bold">Ouvindo...</h2><p className="text-sm opacity-70 mt-2">Diga: "Mercado 50 reais"</p></div>}
+      {/* CORREÇÃO AQUI: Trocamos " por &quot; */}
+      {isListening && <div className="fixed inset-0 bg-black/80 z-[60] flex flex-col items-center justify-center text-white backdrop-blur-sm"><div className="animate-bounce mb-4"><Mic size={48} /></div><h2 className="text-xl font-bold">Ouvindo...</h2><p className="text-sm opacity-70 mt-2">Diga: &quot;Mercado 50 reais&quot;</p></div>}
       
       {isSheetOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center">
@@ -185,20 +155,14 @@ export default function TransactionControls() {
         </div>
       )}
 
-      {/* MODAL FORM */}
       {modalType && (
         <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => !isFullLoading && closeModal()}></div>
           <div className="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl p-6 z-50 animate-slide-up shadow-2xl max-h-[90vh] overflow-y-auto">
-            
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-bold flex items-center gap-2">
-                {modalType === 'edit' ? 'Editar Lançamento' : (modalType === 'real' ? 'Gasto Realizado' : 'Planejamento')}
-              </h3>
+              <h3 className="text-lg font-bold flex items-center gap-2">{modalType === 'edit' ? 'Editar Lançamento' : (modalType === 'real' ? 'Gasto Realizado' : 'Planejamento')}</h3>
               <div className="flex gap-2">
-                {modalType === 'edit' && !showDeleteMenu && (
-                    <button onClick={() => setShowDeleteMenu(true)} className="p-2 bg-red-50 text-red-500 rounded-full hover:bg-red-100 transition-colors"><Trash2 size={18} /></button>
-                )}
+                {modalType === 'edit' && !showDeleteMenu && <button onClick={() => setShowDeleteMenu(true)} className="p-2 bg-red-50 text-red-500 rounded-full hover:bg-red-100 transition-colors"><Trash2 size={18} /></button>}
                 {!isFullLoading && <button onClick={closeModal} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200"><X size={18} /></button>}
               </div>
             </div>
@@ -218,27 +182,15 @@ export default function TransactionControls() {
             {!showDeleteMenu && (
                 <div className="space-y-5">
                 <div className="flex items-center gap-2 bg-gray-50 p-3 rounded-lg border border-gray-100 focus-within:border-brand transition-colors"><User size={16} className="text-gray-400" /><input type="text" value={payer} onChange={e => setPayer(e.target.value)} placeholder="Responsável (Opcional)" className="bg-transparent outline-none text-sm w-full font-medium" /></div>
-                
-                <div className="flex gap-4">
-                    <div className="w-1/3"><label className="text-[10px] font-bold text-gray-400 uppercase">Valor</label><input type="number" value={amount} onChange={e => setAmount(e.target.value)} className="w-full border-b-2 border-gray-200 focus:border-brand py-2 outline-none font-bold text-lg bg-transparent transition-colors" placeholder="0.00" /></div>
-                    <div className="w-2/3"><label className="text-[10px] font-bold text-gray-400 uppercase">Descrição</label><input ref={descInputRef} type="text" value={desc} onChange={e => setDesc(e.target.value)} className="w-full border-b-2 border-gray-200 focus:border-brand py-2 outline-none text-lg bg-transparent transition-colors" placeholder="Ex: Mercado" /></div>
-                </div>
-
+                <div className="flex gap-4"><div className="w-1/3"><label className="text-[10px] font-bold text-gray-400 uppercase">Valor</label><input type="number" value={amount} onChange={e => setAmount(e.target.value)} className="w-full border-b-2 border-gray-200 focus:border-brand py-2 outline-none font-bold text-lg bg-transparent transition-colors" placeholder="0.00" /></div><div className="w-2/3"><label className="text-[10px] font-bold text-gray-400 uppercase">Descrição</label><input ref={descInputRef} type="text" value={desc} onChange={e => setDesc(e.target.value)} className="w-full border-b-2 border-gray-200 focus:border-brand py-2 outline-none text-lg bg-transparent transition-colors" placeholder="Ex: Mercado" /></div></div>
                 <div><label className="text-[10px] font-bold text-gray-400 uppercase">Data</label><input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full border-b-2 border-gray-200 focus:border-brand py-2 outline-none bg-transparent transition-colors" /></div>
                 <div><label className="text-[10px] font-bold text-gray-400 uppercase mb-2 block">Categoria</label>{renderChips(category, setCategory)}</div>
                 
                 {(modalType === 'planned' || modalType === 'edit') && (
-                    <div className="bg-blue-50 p-3 rounded-lg flex items-center gap-3">
-                        <RefreshCcw size={18} className="text-blue-500" />
-                        <div className="flex-1"><label className="text-[10px] font-bold text-blue-500 uppercase block mb-1">Repetição Automática</label><select value={recurrence} onChange={e => setRecurrence(e.target.value)} className="w-full bg-white border border-blue-200 rounded p-2 text-sm text-dark outline-none"><option value="none">Não repetir</option><option value="monthly">Mensalmente (Próximos 12)</option><option value="yearly">Anualmente (Próximos 2)</option></select></div>
-                    </div>
+                    <div className="bg-blue-50 p-3 rounded-lg flex items-center gap-3"><RefreshCcw size={18} className="text-blue-500" /><div className="flex-1"><label className="text-[10px] font-bold text-blue-500 uppercase block mb-1">Repetição Automática</label><select value={recurrence} onChange={e => setRecurrence(e.target.value)} className="w-full bg-white border border-blue-200 rounded p-2 text-sm text-dark outline-none"><option value="none">Não repetir</option><option value="monthly">Mensalmente (Próximos 12)</option><option value="yearly">Anualmente (Próximos 2)</option></select></div></div>
                 )}
 
-                <button onClick={handleSave} disabled={isButtonLoading || isFullLoading} className="w-full font-bold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 bg-dark hover:bg-black text-white active:scale-95">
-                    {/* Exibe Spinner pequeno se for loading local */}
-                    {isButtonLoading ? <Coins size={18} className="animate-spin" /> : <Check size={18} />}
-                    <span>{isButtonLoading ? 'Salvando...' : (modalType === 'edit' ? 'Salvar Alterações' : 'Salvar Lançamento')}</span>
-                </button>
+                <button onClick={handleSave} disabled={isButtonLoading || isFullLoading} className="w-full font-bold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 bg-dark hover:bg-black text-white active:scale-95">{isButtonLoading ? <Coins size={18} className="animate-spin" /> : <Check size={18} />}<span>{isButtonLoading ? 'Salvando...' : (modalType === 'edit' ? 'Salvar Alterações' : 'Salvar Lançamento')}</span></button>
                 </div>
             )}
           </div>
