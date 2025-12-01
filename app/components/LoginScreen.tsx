@@ -1,13 +1,14 @@
 'use client';
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Loader2, ArrowRight } from 'lucide-react'; // Ícones
+import { Loader2, ArrowRight, User } from 'lucide-react';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState(''); // Novo campo
   const [loading, setLoading] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(false); // Alternar entre Login e Cadastro
+  const [isSignUp, setIsSignUp] = useState(false);
   const [message, setMessage] = useState('');
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -17,66 +18,91 @@ export default function LoginScreen() {
 
     try {
       if (isSignUp) {
-        // CADASTRO
-        const { error } = await supabase.auth.signUp({
+        if (!name.trim()) throw new Error("Por favor, digite seu nome.");
+
+        // 1. Criar Auth
+        const { data: authData, error: authError } = await supabase.auth.signUp({
           email,
           password,
-          options: { data: { display_name: email.split('@')[0] } } // Salva parte do email como nome
+          options: { 
+            data: { display_name: name } // Metadata inicial
+          }
         });
-        if (error) throw error;
-        setMessage('Conta criada! Você já pode entrar.');
-        setIsSignUp(false); // Volta para tela de login
+        if (authError) throw authError;
+
+        // 2. Atualizar Tabela de Perfil (Garantia)
+        if (authData.user) {
+            await supabase.from('profiles').update({ display_name: name }).eq('id', authData.user.id);
+        }
+
+        setMessage('Conta criada com sucesso! Verifique se entrou automaticamente.');
+        // O AuthContext vai detectar o login e redirecionar para o Onboarding
       } else {
-        // LOGIN
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       }
     } catch (error: any) {
       setMessage(error.message);
-    } finally {
-      setLoading(false);
+      setLoading(false); // Só para loading se der erro, se der sucesso o app recarrega
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white px-6">
+    <div className="min-h-screen flex items-center justify-center bg-white dark:bg-zinc-950 px-6 transition-colors">
       <div className="w-full max-w-sm animate-fade-in">
         
-        {/* Header */}
         <div className="text-center mb-10">
-          <div className="w-12 h-12 bg-brand rounded-full flex items-center justify-center text-white font-bold text-xl mx-auto mb-4 shadow-lg shadow-red-200">
+          <div className="w-14 h-14 bg-brand rounded-2xl rotate-3 flex items-center justify-center text-white font-bold text-2xl mx-auto mb-6 shadow-lg shadow-brand/30">
             F
           </div>
-          <h1 className="text-2xl font-extrabold text-dark tracking-tight">FamilyFlow</h1>
-          <p className="text-secondary text-sm mt-2">Controle financeiro com inteligência.</p>
+          <h1 className="text-3xl font-black text-dark dark:text-white tracking-tight">FamilyFlow</h1>
+          <p className="text-secondary dark:text-gray-400 text-sm mt-2">Gestão financeira compartilhada.</p>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleAuth} className="space-y-4">
-          <div>
+          
+          {/* Campo Nome (Só no Cadastro) */}
+          {isSignUp && (
+             <div className="animate-slide-up">
+                <div className="relative">
+                    <User className="absolute left-0 top-3.5 text-gray-400" size={20} />
+                    <input
+                    type="text"
+                    placeholder="Seu Nome"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full text-lg border-b-2 border-gray-200 dark:border-gray-700 focus:border-brand py-3 pl-8 outline-none bg-transparent placeholder-gray-300 dark:placeholder-gray-600 text-dark dark:text-white transition-colors"
+                    required={isSignUp}
+                    />
+                </div>
+             </div>
+          )}
+
+          <div className="relative">
             <input
               type="email"
-              placeholder="Seu e-mail"
+              placeholder="E-mail"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full text-lg border-b-2 border-gray-200 focus:border-brand py-3 outline-none bg-transparent placeholder-gray-300 transition-colors"
+              className="w-full text-lg border-b-2 border-gray-200 dark:border-gray-700 focus:border-brand py-3 outline-none bg-transparent placeholder-gray-300 dark:placeholder-gray-600 text-dark dark:text-white transition-colors"
               required
             />
           </div>
-          <div>
+          
+          <div className="relative">
             <input
               type="password"
-              placeholder="Sua senha"
+              placeholder="Senha"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full text-lg border-b-2 border-gray-200 focus:border-brand py-3 outline-none bg-transparent placeholder-gray-300 transition-colors"
+              className="w-full text-lg border-b-2 border-gray-200 dark:border-gray-700 focus:border-brand py-3 outline-none bg-transparent placeholder-gray-300 dark:placeholder-gray-600 text-dark dark:text-white transition-colors"
               required
               minLength={6}
             />
           </div>
 
           {message && (
-            <p className={`text-xs text-center p-2 rounded ${message.includes('criada') ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'}`}>
+            <p className={`text-xs text-center p-3 rounded-lg font-medium ${message.includes('sucesso') ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'}`}>
               {message}
             </p>
           )}
@@ -84,20 +110,19 @@ export default function LoginScreen() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-brand hover:bg-brandHover text-white font-bold py-4 rounded-xl shadow-lg shadow-red-100 active:scale-95 transition-all flex items-center justify-center gap-2 mt-6"
+            className="w-full bg-brand hover:bg-brandHover text-white font-bold py-4 rounded-xl shadow-lg shadow-brand/20 active:scale-95 transition-all flex items-center justify-center gap-2 mt-8"
           >
-            {loading ? <Loader2 className="animate-spin" size={20} /> : (isSignUp ? 'Criar Conta' : 'Entrar')}
+            {loading ? <Loader2 className="animate-spin" size={20} /> : (isSignUp ? 'Criar Conta Grátis' : 'Entrar')}
             {!loading && <ArrowRight size={18} />}
           </button>
         </form>
 
-        {/* Toggle Login/Cadastro */}
         <div className="mt-8 text-center">
           <button 
             onClick={() => { setIsSignUp(!isSignUp); setMessage(''); }}
-            className="text-sm text-secondary font-medium hover:text-dark transition-colors"
+            className="text-sm text-secondary dark:text-gray-400 font-medium hover:text-dark dark:hover:text-white transition-colors"
           >
-            {isSignUp ? 'Já tem conta? Entrar' : 'Não tem conta? Cadastrar'}
+            {isSignUp ? 'Já tem conta? Entrar' : 'Novo por aqui? Criar conta'}
           </button>
         </div>
       </div>
