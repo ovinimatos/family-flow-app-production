@@ -75,6 +75,7 @@ export default function Home() {
     };
   }, [transactions, currentDate, dashYear]);
 
+  // Celebração (CORRIGIDO: Dependências adicionadas)
   useEffect(() => {
     const percentage = totals.total === 0 ? 0 : (totals.realized / totals.total) * 100;
     if (percentage >= 99.9 && totals.total > 0 && !showCelebration && currentView === 'timeline') {
@@ -85,7 +86,7 @@ export default function Home() {
         }, 500);
         return () => clearTimeout(timer);
     }
-  }, [totals.realized, totals.total]);
+  }, [totals.realized, totals.total, showCelebration, currentView]); // <--- ADICIONADO showCelebration E currentView
 
   const changeMonth = (offset: number) => {
     const newDate = new Date(currentDate);
